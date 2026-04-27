@@ -69,7 +69,7 @@ def define_routes(app: FastAPI, crud: Crud) -> None:
 
     assert post_entity
 
-    @app.put(path="/entity/{id}/")
+    @app.put(path="/entity/")
     async def put_entity(entity: EntityFull):
         """
         Changes an entity based on the provided entity full
@@ -88,6 +88,7 @@ def define_routes(app: FastAPI, crud: Crud) -> None:
         except AttributeError as e:
             log.error(f"ERROR: {e}")
             raise HTTPException(status_code=404, detail=str(e))
+
     assert put_entity
 
     @app.delete("/entity/{id}/", response_model=None)
