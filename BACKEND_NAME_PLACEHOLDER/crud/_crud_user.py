@@ -1,4 +1,5 @@
 from sqlalchemy import delete, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from ..config import get_logger
@@ -20,17 +21,18 @@ class CrudUsers(CrudEntity):
 
     def change_user(self, user: UserFull):
         with Session(bind=self._engine) as session:
-            stmt = select(User).where(User.entity_id==user.id)
+            stmt = select(User).where(User.entity_id == user.id)
             result = list(session.execute(stmt).scalars())
             if len(result) != 1:
-                raise AttributeError(ERROR_MESSAGES.NO_SUCH_ID % (User.__name__, user.id))
-            change_user=result[0]
-            change_user.password_hash=user.password_hash
-            change_user.name=user.name
-            change_user.user_name=user.user_name
+                raise AttributeError(
+                    ERROR_MESSAGES.NO_SUCH_ID % (User.__name__, user.id)
+                )
+            change_user = result[0]
+            change_user.password_hash = user.password_hash
+            change_user.name = user.name
+            change_user.user_name = user.user_name
             session.add(change_user)
             session.commit()
-
 
     def delete_user(self, id: int):
         """
@@ -73,24 +75,33 @@ class CrudUsers(CrudEntity):
             if existing_entity:
                 entity = self._get_entity(session, existing_entity)
                 if not entity:
-                    raise AttributeError(ERROR_MESSAGES.NO_SUCH_ID % (Entity.__name__, existing_entity.id)
-                )
+                    raise AttributeError(
+                        ERROR_MESSAGES.NO_SUCH_ID
+                        % (Entity.__name__, existing_entity.id)
+                    )
                 if new_user.name:
                     entity.name = new_user.name
-            if not entity:
-                new_entity = EntityBase(name=new_user.name)
-                entity = self._create_entity(session, new_entity)
+            try:
+                if not entity:
+                    new_entity = EntityBase(name=new_user.name)
+                    entity = self._create_entity(session, new_entity)
 
-            user.entity = entity
-            session.add(user)
-            session.commit()
-            user_full = UserFull(
-                user_name=user.user_name,
-                name=entity.name,
-                password_hash=user.password_hash,
-                id=user.entity_id,
-            )
-            return user_full
+                user.entity = entity
+                session.add(user)
+                session.commit()
+                user_full = UserFull(
+                    user_name=user.user_name,
+                    name=entity.name,
+                    password_hash=user.password_hash,
+                    id=user.entity_id,
+                )
+                return user_full
+            except IntegrityError as exc:
+                log.error(f"IntegrityError: {exc.detail}")
+                raise AttributeError(
+                    ERROR_MESSAGES.DUPLICATE_ENTRY
+                    % (user.__class__.__name__, "user_name", user.user_name)
+                )
 
     def get_users(self, filter: UserFilter | None = None) -> list[UserFull]:
         """

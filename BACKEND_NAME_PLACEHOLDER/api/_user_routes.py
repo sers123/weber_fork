@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, status
 
 from ..config import get_logger
 from ..crud import Crud
@@ -13,7 +13,11 @@ def define_routes(app: FastAPI, crud: Crud) -> None:
     async def post_user(  # pyright: ignore[reportUnusedFunction]
         user: UserBase,
     ) -> UserFull:
-        return crud.create_user(user)
+        try:
+            return crud.create_user(user)
+        except AttributeError as err:
+            log.error(str(err))
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(err))
 
     @app.get(path="/user/")
     async def get_user(  # pyright: ignore[reportUnusedFunction]
