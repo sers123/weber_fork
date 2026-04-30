@@ -32,14 +32,15 @@ class CrudEntity(CrudBase):
             AttributeError on invalid id.
         """
         with Session(bind=self._engine) as session:
-            stmt = update(Entity).where(Entity.id==entity.id).values(name=entity.name)
-            result = session.execute(stmt) 
+            stmt = update(Entity).where(Entity.id == entity.id).values(name=entity.name)
+            result = session.execute(stmt)
             if (
                 not result.rowcount  # pyright: ignore[reportUnknownMemberType,reportAttributeAccessIssue]
             ):
-                raise AttributeError(ERROR_MESSAGES.NO_SUCH_ID % (Entity.__name__, entity.id))
+                raise AttributeError(
+                    ERROR_MESSAGES.NO_SUCH_ID % (Entity.__name__, entity.id)
+                )
             session.commit()
-
 
     def delete_entity(self, id: int) -> None:
         """
@@ -78,9 +79,9 @@ class CrudEntity(CrudBase):
             A list of EntityFull objects.
         """
         with Session(bind=self._engine) as session:
-            log.debug(f"get_entities called with filter: {filter}")
-            log.info(f"Log level: {log.level}")
-            log.error("This is an error")
+            log.debug(
+                f"get_entities called with filter: {filter} engine is {self._engine.__hash__}"
+            )
             full_entities: list[EntityFull] = []
             stmt = select(Entity)
             if filter and filter.name:

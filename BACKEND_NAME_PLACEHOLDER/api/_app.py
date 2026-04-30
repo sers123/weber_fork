@@ -1,8 +1,11 @@
 from fastapi import FastAPI
 
+from ..config import get_logger
 from ..crud import Crud
 from ..engine import get_engine
 from ._routes import define_routes
+
+log = get_logger()
 
 _app: FastAPI | None = None
 _crud: Crud | None = None
@@ -16,27 +19,30 @@ instance, and defines the routes if they haven't been defined yet. If environmen
 Returns:
     The initialized FastAPI application instance.
 """
-
-
-def build_app():
+def build_app(crud: Crud | None = None):
 
     global _crud
-    """
-    Initialize the CRUD object with the given database engine. If no CRUD object has been
-    initialized yet, it reads the config file from environment variable 'CONFIG_FILE' and
-    creates an engine using that.
-    """
+    global _app
+
     if not _crud:
-        engine = get_engine()
-        _crud = Crud(engine)
+        if crud:
+            log.debug(f"Crud Entities in build_app: {crud.get_entities()}")
+            _crud = crud
+            log.debug("Existing crud provided.")
+        else:
+            engine = get_engine()
+            _crud = Crud(engine)
+            log.debug("Creating new crud")
 
     global _app
-    """
-    Initialize the FastAPI instance and define the routes if no such instance has been initialized
-    yet.
-    """
+
     if not _app:
+        log.debug("Creating app")
         _app = FastAPI()
+        log.debug(f"Provided crud{crud} used crud{_crud}")
+        log.debug(f"Crud Entities in build_app with _crud: {_crud.get_entities()}")
         define_routes(_app, _crud)
+    else:
+        log.debug("App already created")
 
     return _app

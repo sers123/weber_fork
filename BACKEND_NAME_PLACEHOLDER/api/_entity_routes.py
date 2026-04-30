@@ -9,6 +9,7 @@ log = get_logger()
 
 def define_routes(app: FastAPI, crud: Crud) -> None:
     """Defines the routes for the application."""
+    log.debug(f"Entities from crud in define entity routes {crud.get_entities()}")
 
     @app.get(path="/entity/", response_model=list[EntityFull])
     async def get_entities(search_string: str | None = None) -> list[EntityFull]:
@@ -26,6 +27,7 @@ def define_routes(app: FastAPI, crud: Crud) -> None:
             filter = EntityFilter(name=search_string, id=None)
         else:
             filter = EntityFilter(name=None, id=None)
+        log.debug(f"user crud {crud}")
         return crud.get_entities(filter)
 
     assert get_entities
