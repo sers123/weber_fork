@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from ..config import get_logger
 from ..model import Entity, User
 from ..schema import EntityBase, EntityFull, UserBase, UserFilter, UserFull
+from ..utils._auth import get_password_hash
 from ._crud_entity import CrudEntity
 from ._error_messages import ERROR_MESSAGES
 
@@ -28,7 +29,8 @@ class CrudUsers(CrudEntity):
                     ERROR_MESSAGES.NO_SUCH_ID % (User.__name__, user.id)
                 )
             change_user = result[0]
-            change_user.password_hash = user.password_hash
+            if change_user.password_hash != user.password_hash:
+                change_user.password_hash = get_password_hash(user.password_hash)
             change_user.name = user.name
             change_user.user_name = user.user_name
             session.add(change_user)
@@ -69,7 +71,7 @@ class CrudUsers(CrudEntity):
         with Session(bind=self._engine) as session:
             user = User()
             user.user_name = new_user.user_name
-            user.password_hash = new_user.password_hash
+            user.password_hash = get_password_hash(new_user.password_hash)
 
             entity: Entity | None = None
             if existing_entity:

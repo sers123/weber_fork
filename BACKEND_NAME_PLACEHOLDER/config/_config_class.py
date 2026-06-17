@@ -30,22 +30,33 @@ class Config:
 
     KEY_CONNECTION_STRING: str = "connection_string"
     KEY_LOG_LEVEL: str = "log_level"
+    KEY_ROOT_USER_NAME: str = "root_user_name"
+    KEY_ROOT_USER_PASSWORD: str = "root_user_password"
 
     def __init__(self, file_name: str = ""):
         if file_name in Config.__instances:
             raise RuntimeError("Don't Call constructor!")
         Config.__instances[file_name] = self
+        
+        self._log_level: int | None = None
+        self._connection_string: str = os.getenv("DB_CONNECTION_STRING", os.getenv("DATABASE_URL", Config.DB_CONNECTION_STRING))
+        self._root_user_name: str = os.getenv("ROOT_USER_NAME", "admin")
+        self._root_user_password: str = os.getenv("ROOT_USER_PASSWORD", "admin")
+
         if file_name:
             self._load(file_name)
-        else:
-            self._log_level: int | None = None
-            self._connection_string: str = Config.DB_CONNECTION_STRING
 
     def _load(self, filename: str) -> None:
         if os.path.isfile(filename):
             with open(filename, "r") as f:
                 config_file: dict[str, str] = json.load(f)  # pyright: ignore[reportAny]
-                self._connection_string = config_file[Config.KEY_CONNECTION_STRING]
+                if Config.KEY_CONNECTION_STRING in config_file:
+                    self._connection_string = config_file[Config.KEY_CONNECTION_STRING]
+                if Config.KEY_ROOT_USER_NAME in config_file:
+                    self._root_user_name = config_file[Config.KEY_ROOT_USER_NAME]
+                if Config.KEY_ROOT_USER_PASSWORD in config_file:
+                    self._root_user_password = config_file[Config.KEY_ROOT_USER_PASSWORD]
+                
                 level_name: str | None = None
                 if Config.KEY_LOG_LEVEL in config_file:
                     level_name = config_file[Config.KEY_LOG_LEVEL]
@@ -64,6 +75,14 @@ class Config:
     @property
     def connection_string(self) -> str:
         return self._connection_string
+
+    @property
+    def root_user_name(self) -> str:
+        return self._root_user_name
+
+    @property
+    def root_user_password(self) -> str:
+        return self._root_user_password
 
     """
     Get the current log_level.
