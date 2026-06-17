@@ -1,9 +1,10 @@
-from fastapi import FastAPI, HTTPException, status
+from fastapi import Depends, FastAPI, HTTPException, status
 from starlette.status import HTTP_404_NOT_FOUND, HTTP_409_CONFLICT
 
 from ..config import get_logger
 from ..crud import Crud
 from ..schema import EntityFilter, UserBase, UserFilter, UserFull
+from ..utils._auth import get_current_user
 
 log = get_logger()
 
@@ -13,6 +14,7 @@ def define_routes(app: FastAPI, crud: Crud) -> None:
     @app.post(path="/user/")
     async def post_user(  # pyright: ignore[reportUnusedFunction]
         user: UserBase,
+        _: str = Depends(get_current_user),
     ) -> UserFull:
         try:
             return crud.create_user(user)
@@ -24,6 +26,7 @@ def define_routes(app: FastAPI, crud: Crud) -> None:
     async def post_user_existing_entity(  # pyright: ignore[reportUnusedFunction]
         entity_id: int,
         user: UserBase,
+        _: str = Depends(get_current_user),
     ) -> UserFull:
         try:
             entity_filter = EntityFilter(id=entity_id)
@@ -56,16 +59,22 @@ def define_routes(app: FastAPI, crud: Crud) -> None:
         return result[0]
 
     @app.put(path="/user/")
-    async def _put_user(user: UserFull):  # pyright: ignore[reportUnusedFunction]
+    async def _put_user(  # pyright: ignore[reportUnusedFunction]
+        user: UserFull,
+        _: str = Depends(get_current_user),
+    ):
         try:
             crud.change_user(user)
         except AttributeError as error:
             raise HTTPException(status_code=404, detail=str(error))
 
     @app.delete(path="/user/{id}/")
-    async def _delete_user(id: int):  # pyright: ignore[reportUnusedFunction]
+    async def _delete_user(  # pyright: ignore[reportUnusedFunction]
+        id: int,
+        _: str = Depends(get_current_user),
+    ):
         try:
             return crud.delete_user(id)
         except AttributeError as error:
             log.error(error)
-            return HTTPException(status_code=404, detail=f"No User with id {id}")
+            raise HTTPException(status_code=404, detail=f"No User with id {id}")
